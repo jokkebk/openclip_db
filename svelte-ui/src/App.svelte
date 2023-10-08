@@ -19,9 +19,20 @@
 
 <style>
 /* Limit image size to 256x256 */
-img.result {
+.results img {
   max-width: 256px;
   max-height: 256px;
+}
+
+/* No border on buttons */
+.results button {
+  border: none;
+}
+
+/* Apply larger size to images with the 'enlarged' class */
+img.enlarged {
+  max-width: 100% !important;
+  max-height: 100% !important;
 }
 </style>
 <!-- <main> -->
@@ -33,10 +44,12 @@ img.result {
 </p>
 
 {#if results.length > 0}
-  <ul>
+  <ul class="results">
     {#each results as r}
       <li>#{r.id}: Score {r.score}
-      <img class="result" src={`${endpoint}/api/image/${r.id}`} alt={r.filename}/>
+        <button on:click={() => { r.enlarged = !r.enlarged }}>
+          <img class:enlarged={r.enlarged} src={`${endpoint}/api/image/${r.id}`} alt={r.filename}/>
+        </button>
       </li>
     {/each}
   </ul>
