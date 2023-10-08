@@ -27,3 +27,4 @@ dist-ssr
 *.db
 *.sqlite
 static
+__pycache__
