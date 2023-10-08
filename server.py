@@ -55,9 +55,6 @@ def search():
         text_features /= text_features.norm(dim=-1, keepdim=True)
         print(query_string, text_features.shape)
 
-    # Return text features as JSON response
-    #response = jsonify({'results': text_features.cpu().numpy().tolist()})
-
     # Calculate cosine similarity between query embedding and all embeddings
     scores = text_features @ embeddings.T
     print(scores.shape)
@@ -83,7 +80,6 @@ def search():
     # Accept CORS requests from any origin
     #response.headers.add('Access-Control-Allow-Origin', '*')
 
-    # For now, just echo back the query string
     return response
 
 @app.route('/api/image/<int:id>', methods=['GET'])
@@ -98,4 +94,4 @@ def image(id):
     return send_file(filename)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

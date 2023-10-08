@@ -22,7 +22,6 @@ for arg in sys.argv[1:]:
             for f in files:
                 if f.endswith(".jpg") or f.endswith(".jpeg") or f.endswith(".png"):
                     image_files.append(os.path.join(root, f))
-        #image_files.extend([os.path.join(full_path, f) for f in os.listdir(arg)])
     else: # If it is neither a file nor a directory, print error message and exit
         print("Error: {} is neither a file nor a directory".format(arg))
         exit(1)
