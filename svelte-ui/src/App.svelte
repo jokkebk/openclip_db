@@ -4,16 +4,18 @@
   
   const endpoint = 'http://localhost:5000';
 
-  function search() {
+  async function search() {
     console.log(query);
-    // Run a search query against endpoint's /api/search
-    fetch(`${endpoint}/api/search?q=${query}`)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-        // Return results if there are any
-        if (data.results) results = data.results;
-      });
+    try {
+      // Run a search query against endpoint's /api/search
+      const response = await fetch(`${endpoint}/api/search?q=${query}`);
+      const data = await response.json();
+      console.log(data);
+      // Return results if there are any
+      if (data.results) results = data.results;
+    } catch (error) {
+      console.error(error);
+    }
   }
 </script>
 

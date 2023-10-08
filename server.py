@@ -53,15 +53,12 @@ def search():
         text_features = model.encode_text(text)
         # Normalize, though it isn't strictly necessary
         text_features /= text_features.norm(dim=-1, keepdim=True)
-        print(query_string, text_features.shape)
 
     # Calculate cosine similarity between query embedding and all embeddings
     scores = text_features @ embeddings.T
-    print(scores.shape)
     
     # Convert to Python list
     scores = scores.squeeze().cpu().numpy().tolist()
-    print(len(scores))
 
     # Sort the entries by score
     sorted_entries = sorted(zip(scores, data), reverse=True)
