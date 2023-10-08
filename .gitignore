@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# DB
+# Project specific
 *.db
 *.sqlite
+static
