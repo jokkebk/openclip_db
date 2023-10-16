@@ -10,6 +10,10 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
+# Alternatively, to accept CORS requests from any origin,
+# one could use the following in each route:
+#response.headers.add('Access-Control-Allow-Origin', '*')
+
 from db import ImageEmbeddings, get_session
 
 session = get_session('images.db')
@@ -29,7 +33,7 @@ data = [(d[0], d[1]) for d in data]
 print(len(embeddings), "embeddings take up", embeddings.nbytes / 1024 / 1024, "MB")
 
 import torch, open_clip
-#from PIL import Image
+from PIL import Image
 
 model, _, preprocess = open_clip.create_model_and_transforms('ViT-H-14', pretrained='laion2b_s32b_b79k')
 tokenizer = open_clip.get_tokenizer('ViT-H-14')
@@ -74,11 +78,54 @@ def search():
 
     response = jsonify({'results': results})
 
-    # Accept CORS requests from any origin
-    #response.headers.add('Access-Control-Allow-Origin', '*')
-
     return response
 
+@app.route('/api/search', methods=['POST'])
+def search_with_image():
+    """Search with an image."""
+    # Get posted image
+    image = request.files['image']
+   
+    # Load image
+    image = Image.open(image)
+    
+    # Start by just logging image dimensions and returning an empty response
+    print('Received image with dimensions', image.size)
+
+    # Preprocess image
+    image = preprocess(image)
+
+    # Add batch dimension
+    image = image.unsqueeze(0)
+
+    # Pass image through model
+    with torch.no_grad(), torch.cuda.amp.autocast():
+        image_features = model.encode_image(image)
+        # Normalize, though it isn't strictly necessary
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+
+    # Calculate cosine similarity between query embedding and all embeddings
+    scores = image_features @ embeddings.T
+    
+    # Convert to Python list
+    scores = scores.squeeze().cpu().numpy().tolist()
+
+    # Sort the entries by score
+    sorted_entries = sorted(zip(scores, data), reverse=True)
+
+    # Return the top 10 entries
+    results = []
+    for score, (id, filename) in sorted_entries[:10]:
+        results.append({
+            'id': id,
+            'filename': filename,
+            'score': float(score),
+        })
+
+    response = jsonify({'results': results})
+
+    return response 
+    
 @app.route('/api/image/<int:id>', methods=['GET'])
 def image(id):
     """Return the image with the given id."""
