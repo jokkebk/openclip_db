@@ -1,6 +1,7 @@
 <script>
   let query = '';
   let results = [];
+  let showResults = 20;
   let imageFile = null;
   
   const endpoint = 'http://localhost:5000';
@@ -99,13 +100,13 @@ role="region" aria-label="Image upload area">
 </div>
 
 <p>
-  Image: <input type="file" id="image" />
-<button on:click={searchImage}>Search</button>
+  Query: <input type="text" bind:value={query} />
+<button on:click={search}>Search</button>
 </p>
 
 {#if results.length > 0}
   <ul class="results">
-    {#each results as r}
+    {#each results.slice(0, showResults) as r}
       <li>#{r.id}: Score {r.score}
         <button on:click={() => { r.enlarged = !r.enlarged }}>
           <img class:enlarged={r.enlarged} src={`${endpoint}/api/image/${r.id}`} alt={r.filename}/>
@@ -113,6 +114,10 @@ role="region" aria-label="Image upload area">
       </li>
     {/each}
   </ul>
+  
+  {#if results.length > showResults}
+    <button on:click={() => { showResults += 20 }}>Show more</button>
+  {/if}
 {:else}
   <p>No results</p>
 {/if}

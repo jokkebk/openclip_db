@@ -47,19 +47,37 @@ def index():
 def static_file(path):
     return send_from_directory('static', path)
 
-@app.route('/api/search', methods=['GET'])
+@app.route('/api/search', methods=['GET', 'POST'])
 def search():
-    """Search for images similar to the query string."""
-    query_string = request.args.get('q', '')
+    """Search for images similar to the query string or uploaded image."""
+    # Additional results parameter to return the top N results
+    top_n = request.form.get('results', 100)
+   
+    # Check if the request is a POST request with an image
+    if request.method == 'POST' and 'image' in request.files:
+        # Load posted image
+        image = Image.open(request.files['image'])
+        print('Received image with dimensions', image.size)
+
+        # Preprocess image and add batch dimension
+        image = preprocess(image).unsqueeze(0)
+
+        # Pass image through model
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            features = model.encode_image(image)
+            # Normalize, though it isn't strictly necessary
+            features /= features.norm(dim=-1, keepdim=True)
+    else:
+        query_string = request.args.get('q', '')
     
-    with torch.no_grad(), torch.cuda.amp.autocast():
-        text = tokenizer(query_string)
-        text_features = model.encode_text(text)
-        # Normalize, though it isn't strictly necessary
-        text_features /= text_features.norm(dim=-1, keepdim=True)
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            text = tokenizer(query_string)
+            features = model.encode_text(text)
+            # Normalize, though it isn't strictly necessary
+            features /= features.norm(dim=-1, keepdim=True)
 
     # Calculate cosine similarity between query embedding and all embeddings
-    scores = text_features @ embeddings.T
+    scores = features @ embeddings.T
     
     # Convert to Python list
     scores = scores.squeeze().cpu().numpy().tolist()
@@ -67,9 +85,9 @@ def search():
     # Sort the entries by score
     sorted_entries = sorted(zip(scores, data), reverse=True)
 
-    # Return the top 10 entries
+    # Return the top N entries
     results = []
-    for score, (id, filename) in sorted_entries[:10]:
+    for score, (id, filename) in sorted_entries[:top_n]:
         results.append({
             'id': id,
             'filename': filename,
@@ -79,52 +97,6 @@ def search():
     response = jsonify({'results': results})
 
     return response
-
-@app.route('/api/search', methods=['POST'])
-def search_with_image():
-    """Search with an image."""
-    # Get posted image
-    image = request.files['image']
-   
-    # Load image
-    image = Image.open(image)
-    
-    # Start by just logging image dimensions and returning an empty response
-    print('Received image with dimensions', image.size)
-
-    # Preprocess image
-    image = preprocess(image)
-
-    # Add batch dimension
-    image = image.unsqueeze(0)
-
-    # Pass image through model
-    with torch.no_grad(), torch.cuda.amp.autocast():
-        image_features = model.encode_image(image)
-        # Normalize, though it isn't strictly necessary
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-
-    # Calculate cosine similarity between query embedding and all embeddings
-    scores = image_features @ embeddings.T
-    
-    # Convert to Python list
-    scores = scores.squeeze().cpu().numpy().tolist()
-
-    # Sort the entries by score
-    sorted_entries = sorted(zip(scores, data), reverse=True)
-
-    # Return the top 10 entries
-    results = []
-    for score, (id, filename) in sorted_entries[:10]:
-        results.append({
-            'id': id,
-            'filename': filename,
-            'score': float(score),
-        })
-
-    response = jsonify({'results': results})
-
-    return response 
     
 @app.route('/api/image/<int:id>', methods=['GET'])
 def image(id):
