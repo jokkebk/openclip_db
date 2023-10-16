@@ -2,7 +2,7 @@
   let query = '';
   let results = [];
   
-  const endpoint = 'http://localhost:5000';
+  const endpoint = ''; //http://localhost:5000';
 
   async function search() {
     console.log(query);
